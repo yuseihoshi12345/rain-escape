@@ -1,6 +1,6 @@
 // キャンバスの設定
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+let canvas;
+let ctx;
 
 // ウィンドウサイズに合わせてキャンバスをリサイズ
 function resizeCanvas() {
@@ -87,12 +87,60 @@ let currentDifficulty = '';
 
 // 蚊（プレイヤー）の設定
 const player = {
-    x: window.innerWidth / 2,
-    y: window.innerHeight / 2,
-    width: 60,  // サイズを2倍に
-    height: 60, // サイズを2倍に
-    speed: 6    // 大きくなった分、速度も調整
+    x: 0,
+    y: 0,
+    width: 60,
+    height: 60,
+    speed: 6    // デフォルトの速度
 };
+
+// 速度設定の処理
+function setupSpeedControl() {
+    const speedSlider = document.getElementById('speedSlider');
+    const currentSpeedText = document.getElementById('currentSpeed');
+    
+    if (!speedSlider || !currentSpeedText) return; // 要素が存在しない場合は処理を中断
+    
+    // スライダーの最大値を15に設定
+    speedSlider.max = "15";
+    
+    // 保存された速度設定を読み込む
+    const savedSpeed = localStorage.getItem('playerSpeed');
+    if (savedSpeed) {
+        const speed = parseInt(savedSpeed);
+        if (!isNaN(speed) && speed >= 3 && speed <= 15) {
+            player.speed = speed;
+            speedSlider.value = speed;
+            updateSpeedText(speed);
+        }
+    }
+    
+    // スライダーの値が変更されたときの処理
+    speedSlider.addEventListener('input', function() {
+        const speed = parseInt(this.value);
+        if (!isNaN(speed) && speed >= 3 && speed <= 15) {
+            player.speed = speed;
+            updateSpeedText(speed);
+            localStorage.setItem('playerSpeed', speed.toString());
+        }
+    });
+}
+
+// 速度表示テキストの更新
+function updateSpeedText(speed) {
+    const currentSpeedText = document.getElementById('currentSpeed');
+    if (!currentSpeedText) return;
+    
+    if (speed <= 4) {
+        currentSpeedText.textContent = 'ゆっくり';
+    } else if (speed <= 7) {
+        currentSpeedText.textContent = '普通';
+    } else if (speed <= 10) {
+        currentSpeedText.textContent = '速い';
+    } else {
+        currentSpeedText.textContent = '超速い';
+    }
+}
 
 // ライフの更新
 function updateLives() {
@@ -159,6 +207,12 @@ function initializeGame() {
     isGiantMode = false; // 巨大化状態をリセット
     player.width = 60;  // プレイヤーのサイズを元に戻す
     player.height = 60;
+    
+    // プレイヤーの位置を画面中央に設定
+    if (canvas) {
+        player.x = canvas.width / 2 - player.width / 2;
+        player.y = canvas.height / 2 - player.height / 2;
+    }
 
     // キャンバスのクリックイベントをリセット
     canvas.onclick = null;
@@ -169,6 +223,9 @@ function showDifficultySelect() {
     // キャンバスとゲーム情報を非表示
     canvas.style.display = 'none';
     document.getElementById('gameInfo').style.display = 'none';
+    
+    // タッチエリアを非表示
+    document.getElementById('touchControls').style.display = 'none';
     
     // 難易度選択画面を表示
     const difficultySelect = document.getElementById('difficultySelect');
@@ -207,38 +264,30 @@ const keys = {
 };
 
 function handleKeyDown(e) {
-    const controlType = localStorage.getItem('controlType') || 'arrows';
-    
-    if (controlType === 'arrows') {
-        switch(e.key) {
-            case 'ArrowLeft':
-                keys.left = true;
-                break;
-            case 'ArrowRight':
-                keys.right = true;
-                break;
-            case 'ArrowUp':
-                keys.up = true;
-                break;
-            case 'ArrowDown':
-                keys.down = true;
-                break;
-        }
-    } else if (controlType === 'wasd') {
-        switch(e.key.toLowerCase()) {
-            case 'a':
-                keys.left = true;
-                break;
-            case 'd':
-                keys.right = true;
-                break;
-            case 'w':
-                keys.up = true;
-                break;
-            case 's':
-                keys.down = true;
-                break;
-        }
+    if (!isGameRunning) return; // ゲームが実行中でない場合は無視
+
+    switch(e.key.toLowerCase()) {
+        // WASDキー
+        case 'a':
+        case 'arrowleft':  // 矢印キー
+            e.preventDefault();
+            keys.left = true;
+            break;
+        case 'd':
+        case 'arrowright':
+            e.preventDefault();
+            keys.right = true;
+            break;
+        case 'w':
+        case 'arrowup':
+            e.preventDefault();
+            keys.up = true;
+            break;
+        case 's':
+        case 'arrowdown':
+            e.preventDefault();
+            keys.down = true;
+            break;
     }
 
     if (e.key === 'Escape') {
@@ -247,38 +296,28 @@ function handleKeyDown(e) {
 }
 
 function handleKeyUp(e) {
-    const controlType = localStorage.getItem('controlType') || 'arrows';
-    
-    if (controlType === 'arrows') {
-        switch(e.key) {
-            case 'ArrowLeft':
-                keys.left = false;
-                break;
-            case 'ArrowRight':
-                keys.right = false;
-                break;
-            case 'ArrowUp':
-                keys.up = false;
-                break;
-            case 'ArrowDown':
-                keys.down = false;
-                break;
-        }
-    } else if (controlType === 'wasd') {
-        switch(e.key.toLowerCase()) {
-            case 'a':
-                keys.left = false;
-                break;
-            case 'd':
-                keys.right = false;
-                break;
-            case 'w':
-                keys.up = false;
-                break;
-            case 's':
-                keys.down = false;
-                break;
-        }
+    switch(e.key.toLowerCase()) {
+        // WASDキー
+        case 'a':
+        case 'arrowleft':  // 矢印キー
+            e.preventDefault();
+            keys.left = false;
+            break;
+        case 'd':
+        case 'arrowright':
+            e.preventDefault();
+            keys.right = false;
+            break;
+        case 'w':
+        case 'arrowup':
+            e.preventDefault();
+            keys.up = false;
+            break;
+        case 's':
+        case 'arrowdown':
+            e.preventDefault();
+            keys.down = false;
+            break;
     }
 }
 
@@ -666,18 +705,36 @@ function drawPlayer() {
 
 // プレイヤーの移動
 function movePlayer() {
-    if (keys.left && player.x > 0) {
-        player.x -= player.speed;
+    if (!isGameRunning || gameOver || gameCleared) return;
+    
+    const speed = player.speed;
+    const nextPos = {
+        x: player.x,
+        y: player.y
+    };
+    
+    // 斜め移動時の速度調整
+    if ((keys.left || keys.right) && (keys.up || keys.down)) {
+        const diagonalSpeed = speed * 0.707; // √2/2 ≈ 0.707
+        if (keys.left) nextPos.x -= diagonalSpeed;
+        if (keys.right) nextPos.x += diagonalSpeed;
+        if (keys.up) nextPos.y -= diagonalSpeed;
+        if (keys.down) nextPos.y += diagonalSpeed;
+    } else {
+        // 通常の移動
+        if (keys.left) nextPos.x -= speed;
+        if (keys.right) nextPos.x += speed;
+        if (keys.up) nextPos.y -= speed;
+        if (keys.down) nextPos.y += speed;
     }
-    if (keys.right && player.x < canvas.width - player.width) {
-        player.x += player.speed;
-    }
-    if (keys.up && player.y > 0) {
-        player.y -= player.speed;
-    }
-    if (keys.down && player.y < canvas.height - player.height) {
-        player.y += player.speed;
-    }
+    
+    // 画面外に出ないように位置を制限
+    nextPos.x = Math.max(0, Math.min(canvas.width - player.width, nextPos.x));
+    nextPos.y = Math.max(0, Math.min(canvas.height - player.height, nextPos.y));
+    
+    // 位置を更新
+    player.x = nextPos.x;
+    player.y = nextPos.y;
 }
 
 // ゲームの更新
@@ -907,7 +964,7 @@ function startGame(difficultyLevel) {
     // 血の雨の保証回数をリセット
     guaranteedBloodDrops = 3;
     totalBloodDrops = 0;
-    nextGuaranteedBloodTime = Date.now() + 5000; // 開始5秒後から保証された血の雨を開始
+    nextGuaranteedBloodTime = Date.now() + 5000;
     
     // 選択画面を非表示
     document.getElementById('difficultySelect').style.display = 'none';
@@ -916,6 +973,11 @@ function startGame(difficultyLevel) {
     canvas.style.display = 'block';
     const gameInfo = document.getElementById('gameInfo');
     gameInfo.style.display = 'block';
+
+    // タッチエリアを表示（モバイルの場合のみ）
+    if (window.innerWidth <= 768) {
+        document.getElementById('touchControls').style.display = 'block';
+    }
     
     // ハイスコア表示を追加
     if (!document.getElementById('current-highscore-container')) {
@@ -932,35 +994,147 @@ function startGame(difficultyLevel) {
     updateGameInfo();
     updateLives();
     
-    // フルスクリーンモードを開始
-    if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(err => {
-            console.log('フルスクリーンモードエラー:', err);
-        });
-    }
-    
     // キャンバスをリサイズ
     resizeCanvas();
     
+    // プレイヤーの位置を再設定
+    player.x = canvas.width / 2 - player.width / 2;
+    player.y = canvas.height / 2 - player.height / 2;
+    
     // ゲーム開始
     isGameRunning = true;
-    animationFrameId = requestAnimationFrame(gameLoop);
+    requestAnimationFrame(gameLoop);
     startTimer();
 }
 
 // 初期化処理
 function init() {
+    // キャンバスの取得と設定
+    canvas = document.getElementById('gameCanvas');
+    if (!canvas) {
+        console.error('Canvas element not found');
+        return;
+    }
+    ctx = canvas.getContext('2d');
+    
     // 難易度選択ボタンのイベントリスナーを設定
     setupDifficultyButtons();
     
     // キーボードイベントリスナーを設定
-    document.removeEventListener('keydown', handleKeyDown);
-    document.removeEventListener('keyup', handleKeyUp);
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keyup', handleKeyUp);
+    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keyup', handleKeyUp);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    // タッチ操作のイベントリスナーを設定
+    setupTouchControls();
+    
+    // 速度設定の初期化
+    setupSpeedControl();
     
     // ハイスコアを表示
     updateHighScoreDisplay();
+    
+    // キャンバスのリサイズを実行
+    resizeCanvas();
+    
+    // ゲームの状態をリセット
+    isGameRunning = false;
+    gameOver = false;
+    gameCleared = false;
+    
+    // プレイヤーの初期位置を設定
+    player.x = canvas.width / 2 - player.width / 2;
+    player.y = canvas.height / 2 - player.height / 2;
+    
+    // 難易度選択画面を表示
+    showDifficultySelect();
+}
+
+// タッチ操作の設定
+function setupTouchControls() {
+    const touchArea = document.querySelector('.touch-area');
+    if (!touchArea) return; // タッチエリアが存在しない場合は処理を中断
+    
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isTouching = false;
+
+    function updatePlayerDirection(touchX, touchY) {
+        const rect = touchArea.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        // タッチ位置と中心との差分を計算
+        const diffX = touchX - centerX;
+        const diffY = touchY - centerY;
+        
+        // 閾値（感度調整用）
+        const threshold = 20;
+        
+        // X方向の移動
+        if (diffX > threshold) {
+            keys.right = true;
+            keys.left = false;
+        } else if (diffX < -threshold) {
+            keys.left = true;
+            keys.right = false;
+        } else {
+            keys.left = false;
+            keys.right = false;
+        }
+        
+        // Y方向の移動
+        if (diffY > threshold) {
+            keys.down = true;
+            keys.up = false;
+        } else if (diffY < -threshold) {
+            keys.up = true;
+            keys.down = false;
+        } else {
+            keys.up = false;
+            keys.down = false;
+        }
+    }
+
+    function resetKeys() {
+        keys.up = false;
+        keys.down = false;
+        keys.left = false;
+        keys.right = false;
+    }
+
+    // タッチ開始時
+    touchArea.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isTouching = true;
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        updatePlayerDirection(touchStartX, touchStartY);
+    }, { passive: false });
+
+    // タッチ移動時
+    touchArea.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (!isTouching) return;
+        const touch = e.touches[0];
+        updatePlayerDirection(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    // タッチ終了時
+    touchArea.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        isTouching = false;
+        resetKeys();
+    }, { passive: false });
+
+    // タッチがキャンセルされた時
+    touchArea.addEventListener('touchcancel', (e) => {
+        e.preventDefault();
+        isTouching = false;
+        resetKeys();
+    }, { passive: false });
 }
 
 // 初期化を実行

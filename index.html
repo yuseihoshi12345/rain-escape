@@ -680,6 +680,128 @@
             font-size: 32px;
             filter: drop-shadow(0 0 5px #ff0000);
         }
+
+        /* タッチ操作用のボタン */
+        #touchControls {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            height: 300px;
+            display: none;  /* 常に非表示をデフォルトに */
+            z-index: 2000;
+            touch-action: none;
+        }
+
+        .touch-area {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(
+                circle at center,
+                rgba(255, 255, 255, 0.1) 0%,
+                rgba(255, 255, 255, 0.05) 50%,
+                transparent 70%
+            );
+            border-radius: 50%;
+            backdrop-filter: blur(2px);
+        }
+
+        .touch-guide {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            #touchControls {
+                display: none;  /* モバイルでもデフォルトは非表示に */
+            }
+            #gameInfo {
+                font-size: 18px;
+            }
+            .game-title {
+                font-size: 48px;
+            }
+            .game-subtitle {
+                font-size: 24px;
+            }
+            .difficulty-btn {
+                width: 240px;
+                font-size: 22px;
+            }
+        }
+
+        /* 速度調整用のスタイル */
+        .speed-control {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(79, 164, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .speed-control h3 {
+            color: #4FA4FF;
+            margin: 0 0 15px 0;
+            font-size: 20px;
+            text-shadow: 0 0 5px #4FA4FF;
+        }
+
+        .speed-slider-container {
+            width: 100%;
+            padding: 0 10px;
+        }
+
+        #speedSlider {
+            width: 100%;
+            height: 20px;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            outline: none;
+            margin-bottom: 10px;
+        }
+
+        #speedSlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            background: #4FA4FF;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(79, 164, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        #speedSlider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(79, 164, 255, 0.7);
+        }
+
+        .speed-labels {
+            display: flex;
+            justify-content: space-between;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+        }
+
+        #currentSpeed {
+            color: #4FA4FF;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -721,6 +843,17 @@
                             </div>
                         </div>
                     </label>
+                </div>
+                <div class="speed-control">
+                    <h3>移動速度</h3>
+                    <div class="speed-slider-container">
+                        <input type="range" id="speedSlider" min="3" max="9" step="1" value="6">
+                        <div class="speed-labels">
+                            <span>遅い</span>
+                            <span id="currentSpeed">普通</span>
+                            <span>速い</span>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="modal-text">
@@ -790,6 +923,11 @@
         避けた雨粒: <span id="score">0</span>
         <br>
         残り時間: <span id="time">60</span>秒
+    </div>
+    <div id="touchControls">
+        <div class="touch-area">
+            <div class="touch-guide">タッチ</div>
+        </div>
     </div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     <script src="game.js"></script>
