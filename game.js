@@ -819,11 +819,15 @@ function movePlayer() {
 function update() {
     if (gameOver) {
         stopBGM();
+        // タッチエリアを非表示
+        document.getElementById('touchControls').style.display = 'none';
         return;
     }
 
     if (gameCleared) {
         stopBGM();
+        // タッチエリアを非表示
+        document.getElementById('touchControls').style.display = 'none';
         return;
     }
 
@@ -911,6 +915,12 @@ function draw() {
     greendrops.forEach(greendrop => greendrop.draw());
 
     if (gameOver || gameCleared) {
+        // タッチエリアを非表示
+        const touchControls = document.getElementById('touchControls');
+        if (touchControls) {
+            touchControls.style.display = 'none';
+        }
+        
         // ハイスコアの更新をチェック
         const isNewHighScore = updateHighScore();
         
