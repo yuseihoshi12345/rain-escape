@@ -75,6 +75,75 @@ let giantModeTimer = 0; // 巨大化の残り時間
 const GIANT_MODE_DURATION = 5000; // 巨大化の持続時間（5秒）
 const GREEN_DROP_SPAWN_CHANCE = 0.0003; // 緑の雨の出現確率
 
+// BGM設定
+let bgm = new Audio('bgm.mp3');
+bgm.loop = true;
+bgm.volume = 0.5;
+
+// BGMの音量を設定
+function setBGMVolume(volume) {
+    bgm.volume = Math.max(0, Math.min(1, volume));
+    localStorage.setItem('bgmVolume', volume.toString());
+}
+
+// BGMの再生
+function playBGM() {
+    // 保存された音量設定を読み込む
+    const savedVolume = localStorage.getItem('bgmVolume');
+    if (savedVolume !== null) {
+        setBGMVolume(parseFloat(savedVolume));
+    }
+    
+    bgm.play().catch(error => {
+        console.log('BGM再生エラー:', error);
+    });
+}
+
+// BGMの停止
+function stopBGM() {
+    bgm.pause();
+    bgm.currentTime = 0;
+}
+
+// 音量設定の初期化
+function setupVolumeControl() {
+    const volumeSlider = document.getElementById('volumeSlider');
+    const volumeText = document.getElementById('currentVolume');
+    
+    if (!volumeSlider || !volumeText) return;
+    
+    // 保存された音量設定を読み込む
+    const savedVolume = localStorage.getItem('bgmVolume');
+    if (savedVolume !== null) {
+        const volume = parseFloat(savedVolume);
+        volumeSlider.value = volume * 100;
+        updateVolumeText(volume);
+    }
+    
+    // スライダーの値が変更されたときの処理
+    volumeSlider.addEventListener('input', function() {
+        const volume = parseInt(this.value) / 100;
+        setBGMVolume(volume);
+        updateVolumeText(volume);
+    });
+}
+
+// 音量表示テキストの更新
+function updateVolumeText(volume) {
+    const volumeText = document.getElementById('currentVolume');
+    if (!volumeText) return;
+    
+    if (volume === 0) {
+        volumeText.textContent = 'ミュート';
+    } else if (volume <= 0.3) {
+        volumeText.textContent = '小';
+    } else if (volume <= 0.7) {
+        volumeText.textContent = '中';
+    } else {
+        volumeText.textContent = '大';
+    }
+}
+
 // ハイスコア管理
 const highScores = {
     easy: parseInt(localStorage.getItem('highScore_easy')) || 0,
@@ -220,12 +289,21 @@ function initializeGame() {
 
 // 難易度選択画面を表示
 function showDifficultySelect() {
+    // BGMを停止
+    stopBGM();
+    
     // キャンバスとゲーム情報を非表示
     canvas.style.display = 'none';
     document.getElementById('gameInfo').style.display = 'none';
     
     // タッチエリアを非表示
     document.getElementById('touchControls').style.display = 'none';
+
+    // 音量調節スライダーを非表示
+    const volumeContainer = document.getElementById('volume-control-container');
+    if (volumeContainer) {
+        volumeContainer.style.display = 'none';
+    }
     
     // 難易度選択画面を表示
     const difficultySelect = document.getElementById('difficultySelect');
@@ -739,7 +817,15 @@ function movePlayer() {
 
 // ゲームの更新
 function update() {
-    if (gameOver) return;
+    if (gameOver) {
+        stopBGM();
+        return;
+    }
+
+    if (gameCleared) {
+        stopBGM();
+        return;
+    }
 
     movePlayer();
     spawnRaindrop();
@@ -958,6 +1044,9 @@ function startGame(difficultyLevel) {
     currentDifficulty = difficultyLevel;
     initializeGame();
     
+    // BGMを再生
+    playBGM();
+    
     // 難易度設定を適用
     currentSettings = DIFFICULTY_SETTINGS[difficultyLevel];
     
@@ -988,6 +1077,39 @@ function startGame(difficultyLevel) {
         gameInfo.appendChild(highscoreContainer);
     } else {
         document.getElementById('current-highscore').textContent = highScores[currentDifficulty];
+    }
+
+    // 音量調節スライダーを追加
+    if (!document.getElementById('volume-control-container')) {
+        const volumeContainer = document.createElement('div');
+        volumeContainer.id = 'volume-control-container';
+        volumeContainer.style.position = 'fixed';
+        volumeContainer.style.top = '10px';
+        volumeContainer.style.right = '10px';
+        volumeContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        volumeContainer.style.padding = '10px';
+        volumeContainer.style.borderRadius = '5px';
+        volumeContainer.style.zIndex = '1000';
+        
+        const volumeSlider = document.createElement('input');
+        volumeSlider.type = 'range';
+        volumeSlider.id = 'volumeSlider';
+        volumeSlider.min = '0';
+        volumeSlider.max = '100';
+        volumeSlider.value = bgm.volume * 100;
+        volumeSlider.style.width = '100px';
+        
+        const volumeText = document.createElement('span');
+        volumeText.id = 'currentVolume';
+        volumeText.style.color = 'white';
+        volumeText.style.marginLeft = '10px';
+        
+        volumeContainer.appendChild(volumeSlider);
+        volumeContainer.appendChild(volumeText);
+        document.body.appendChild(volumeContainer);
+        
+        // 音量設定の初期化
+        setupVolumeControl();
     }
     
     // スコアとライフを更新
@@ -1031,6 +1153,9 @@ function init() {
     
     // 速度設定の初期化
     setupSpeedControl();
+    
+    // 音量設定の初期化
+    setupVolumeControl();
     
     // ハイスコアを表示
     updateHighScoreDisplay();
