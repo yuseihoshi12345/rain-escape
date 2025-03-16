@@ -1090,6 +1090,16 @@ function startGame(difficultyLevel) {
         volumeContainer.style.padding = '10px';
         volumeContainer.style.borderRadius = '5px';
         volumeContainer.style.zIndex = '1000';
+        volumeContainer.style.display = 'flex';
+        volumeContainer.style.alignItems = 'center';
+        volumeContainer.style.gap = '8px';
+        
+        // 音量アイコンの追加
+        const volumeIcon = document.createElement('span');
+        volumeIcon.id = 'volumeIcon';
+        volumeIcon.style.color = 'white';
+        volumeIcon.style.fontSize = '20px';
+        volumeIcon.innerHTML = '🔊';
         
         const volumeSlider = document.createElement('input');
         volumeSlider.type = 'range';
@@ -1102,14 +1112,37 @@ function startGame(difficultyLevel) {
         const volumeText = document.createElement('span');
         volumeText.id = 'currentVolume';
         volumeText.style.color = 'white';
-        volumeText.style.marginLeft = '10px';
+        volumeText.style.minWidth = '40px';
         
+        volumeContainer.appendChild(volumeIcon);
         volumeContainer.appendChild(volumeSlider);
         volumeContainer.appendChild(volumeText);
         document.body.appendChild(volumeContainer);
         
         // 音量設定の初期化
         setupVolumeControl();
+        
+        // 音量に応じてアイコンを更新する関数
+        function updateVolumeIcon(volume) {
+            if (volume === 0) {
+                volumeIcon.innerHTML = '🔇';
+            } else if (volume <= 0.3) {
+                volumeIcon.innerHTML = '🔈';
+            } else if (volume <= 0.7) {
+                volumeIcon.innerHTML = '🔉';
+            } else {
+                volumeIcon.innerHTML = '🔊';
+            }
+        }
+        
+        // スライダーの値が変更されたときにアイコンも更新
+        volumeSlider.addEventListener('input', function() {
+            const volume = parseInt(this.value) / 100;
+            updateVolumeIcon(volume);
+        });
+        
+        // 初期アイコンの設定
+        updateVolumeIcon(bgm.volume);
     }
     
     // スコアとライフを更新
